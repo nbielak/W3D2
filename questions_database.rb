@@ -137,6 +137,10 @@ class Question
     question.map {|question| Question.new(question)}
   end
 
+  def self.most_followed(n)
+    QuestionFollows.most_followed_questions(n)
+  end
+
   def initialize(options)
 
     @id = options['id']
@@ -235,8 +239,8 @@ class QuestionFollows
     followed_questions.map{|question| Question.new(question)}
   end
 
-  def self.most_followed_questions
-    most_followed = QuestionsDatabase.instance.execute(<<-SQL, question_id)
+  def self.most_followed_questions(n)
+    most_followed = QuestionsDatabase.instance.execute(<<-SQL, @question_id, n)
     SELECT
       questions.id, questions.body, questions.title, questions.author_id
     FROM
@@ -244,8 +248,16 @@ class QuestionFollows
     JOIN
       question_follows
     ON
-      questions.id = question_follows.question_id
+      questions.id = ?
+    GROUP BY
+      questions.id
+    ORDER BY
+      COUNT(user_id) DESC
+    LIMIT
+      ?
+    SQL
 
+    most_followed.map {|followed| Question.new(followed)}
   end
 
   def initialize(options)
